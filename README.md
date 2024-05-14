@@ -91,7 +91,7 @@ Open your web browser and navigate to:
 http://localhost:5001
 ```
 
-Authors
-Said Albreiki
-Saqer Alshukaili
-Jaber Albusaidi
+## Students
+- Said Albreiki
+- Saqer Alshukaili
+- Jaber Albusaidi
