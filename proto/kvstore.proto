@@ -2,16 +2,10 @@ syntax = "proto3";
 
 package kvstore;
 
-service KeyValueStore {
-    rpc Put (PutRequest) returns (PutResponse);
-    rpc Get (GetRequest) returns (GetResponse);
-    rpc Delete (DeleteRequest) returns (DeleteResponse);
-}
-
 message PutRequest {
     string key = 1;
     string value = 2;
-    int32 source_node_id = 3;  
+    int32 source_node_id = 3;
 }
 
 message PutResponse {
@@ -19,7 +13,9 @@ message PutResponse {
 }
 
 message GetRequest {
-    string key = 1;
+  string key = 1;
+  int32 source_node_id = 2;
+  bool replicated = 3;
 }
 
 message GetResponse {
@@ -29,8 +25,15 @@ message GetResponse {
 
 message DeleteRequest {
     string key = 1;
+    int32 source_node_id = 2;  // Added this line
 }
 
 message DeleteResponse {
     bool success = 1;
+}
+
+service KeyValueStore {
+    rpc Put (PutRequest) returns (PutResponse);
+    rpc Get (GetRequest) returns (GetResponse);
+    rpc Delete (DeleteRequest) returns (DeleteResponse);
 }

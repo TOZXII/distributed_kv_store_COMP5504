@@ -7,6 +7,11 @@ from grpc_health.v1 import health_pb2, health_pb2_grpc
 from grpc_health.v1 import health
 import kvstore_pb2
 import kvstore_pb2_grpc
+import logging
+# Set up logging
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 class KeyValueStoreServicer(kvstore_pb2_grpc.KeyValueStoreServicer):
@@ -22,7 +27,7 @@ class KeyValueStoreServicer(kvstore_pb2_grpc.KeyValueStoreServicer):
             if peer == source_node_id:
                 continue  # Skip replication back to the source node
             retry_count = 0
-            max_retries = 5
+            max_retries = 3
             while retry_count < max_retries:
                 try:
                     with grpc.insecure_channel(self.peers[peer]) as channel:
@@ -30,40 +35,99 @@ class KeyValueStoreServicer(kvstore_pb2_grpc.KeyValueStoreServicer):
 
                         stub.Put(kvstore_pb2.PutRequest(
                             key=key, value=value, source_node_id=self.node_id))
+                        logger.debug(f"Replicated key: {key} to peer: {peer}")
                         break
                 except grpc.RpcError as e:
                     retry_count += 1
-
+                    logger.warning(
+                        f"Failed to replicate key: {key} to peer: {peer}, retry {retry_count}/{max_retries}")
                     time.sleep(2 ** retry_count)
 
     def Put(self, request, context):
         request_id = (request.key, request.source_node_id)
         if request_id in self.processed_requests:
-
+            logger.debug(f"Request {request_id} already processed")
             return kvstore_pb2.PutResponse(success=True)
 
         self.processed_requests.add(request_id)
 
         if request.source_node_id == self.node_id:
-
+            logger.debug(f"Request {request_id} is a local request")
             return kvstore_pb2.PutResponse(success=True)
 
+        logger.debug(
+            f"Storing key: {request.key} with value: {request.value} in node {self.node_id}")
         self.db.Put(request.key.encode('utf-8'), request.value.encode('utf-8'))
         self.replicate(request.key, request.value, request.source_node_id)
         return kvstore_pb2.PutResponse(success=True)
 
     def Get(self, request, context):
+        logger.debug(
+            f"Get request received for key: {request.key}, replicated: {request.replicated}")
+        if request.replicated:
+            try:
+                value = self.db.Get(
+                    request.key.encode('utf-8')).decode('utf-8')
+                logger.debug(f"Key: {request.key} found in primary node")
+                return kvstore_pb2.GetResponse(value=value, found=True)
+            except Exception:
+                logger.debug(f"Key: {request.key} replicatd exption")
+                return kvstore_pb2.GetResponse(found=False)
 
-        try:
-            value = self.db.Get(request.key.encode('utf-8')).decode('utf-8')
-            return kvstore_pb2.GetResponse(value=value, found=True)
-        except KeyError:
-            return kvstore_pb2.GetResponse(found=False)
+        else:
+            try:
+                value = self.db.Get(
+                    request.key.encode('utf-8')).decode('utf-8')
+                logger.debug(f"Key: {request.key} found in primary node")
+                return kvstore_pb2.GetResponse(value=value, found=True)
+            except Exception:
+                logger.debug(
+                    f"Key: {request.key} not found in primary node, looking in replicas")
+                for peer in self.replica_ids:
+                    try:
+                        with grpc.insecure_channel(self.peers[peer]) as channel:
+                            stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
+                            response = stub.Get(kvstore_pb2.GetRequest(
+                                key=request.key, source_node_id=self.node_id, replicated=True), timeout=1.0)
+                            if response.found:
+                                logger.debug(
+                                    f"Key: {request.key} found in replica node {peer}")
+                                return kvstore_pb2.GetResponse(value=response.value, found=True)
+                    except grpc.RpcError:
+                        logger.warning(
+                            f"Failed to connect to replica node {peer}: {grpc.RpcError}")
+                        continue
+                logger.debug(
+                    f"Key: {request.key} not found in any replica node")
+                return kvstore_pb2.GetResponse(found=False)
 
     def Delete(self, request, context):
-
         try:
             self.db.Delete(request.key.encode('utf-8'))
+            logger.debug(f"Key: {request.key} deleted from primary node")
+            self.processed_requests = set()
+
+            for peer in self.replica_ids:
+                retry_count = 0
+                max_retries = 2
+                while retry_count < max_retries:
+                    try:
+                        with grpc.insecure_channel(self.peers[peer]) as channel:
+                            stub = kvstore_pb2_grpc.KeyValueStoreStub(channel)
+                            stub.Delete(kvstore_pb2.DeleteRequest(
+                                key=request.key, source_node_id=self.node_id), timeout=1.0)
+                            logger.debug(
+                                f"Deleted key: {request.key} from replica node {peer}")
+                            break
+                    except grpc.RpcError as e:
+                        retry_count += 1
+                        logger.warning(
+                            f"Failed to delete key: {request.key} from replica node {peer}, retry {retry_count}/{max_retries}")
+                        time.sleep(2 ** retry_count)
+                        if retry_count >= max_retries:
+                            logger.error(
+                                f"Exceeded max retries for deleting key: {request.key} from replica node {peer}")
+                            break
             return kvstore_pb2.DeleteResponse(success=True)
         except KeyError:
             return kvstore_pb2.DeleteResponse(success=False)
@@ -95,9 +159,10 @@ def health_check(peers):
                     response = stub.Check(health_pb2.HealthCheckRequest(
                         service='grpc.health.v1.Health'))
                     if response.status != health_pb2.HealthCheckResponse.SERVING:
-                        print(f"Node {peer} is down")
+                        logger.warning(f"Node {peer} is down")
             except Exception as e:
-                print(f"Failed to connect to {peer}: {e}")
+                logger.warning(f"Failed to connect to {peer}: {e}")
+
         time.sleep(5)
 
 
