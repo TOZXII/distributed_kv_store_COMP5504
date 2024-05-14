@@ -46,7 +46,8 @@ def get():
     node = nodes[hash(key) % len(nodes)]
     stub = get_stub(node)
     try:
-        response = stub.Get(kvstore_pb2.GetRequest(key=key))
+        response = stub.Get(kvstore_pb2.GetRequest(
+            key=key, source_node_id=3, replicated=False))
         if response.found:
             flash(f'Key: {key}, Value: {response.value}', 'success')
         else:
