@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Distributed Key-Value Store</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Distributed Key-Value Store</h1>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        <form action="{{ url_for('put') }}" method="POST">
+            <h2>Put</h2>
+            <label for="key">Key:</label>
+            <input type="text" id="key" name="key" required>
+            <label for="value">Value:</label>
+            <input type="text" id="value" name="value" required>
+            <button type="submit">Store</button>
+        </form>
+        <form action="{{ url_for('get') }}" method="POST">
+            <h2>Get</h2>
+            <label for="key">Key:</label>
+            <input type="text" id="get_key" name="key" required>
+            <button type="submit">Retrieve</button>
+        </form>
+        <form action="{{ url_for('delete') }}" method="POST">
+            <h2>Delete</h2>
+            <label for="key">Key:</label>
+            <input type="text" id="delete_key" name="key" required>
+            <button type="submit">Delete</button>
+        </form>
+    </div>
+</body>
+</html>

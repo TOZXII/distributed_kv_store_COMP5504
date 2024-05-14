@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  kvstore-node1:
+    build: .
+    environment:
+      - SERVICE=node
+      - NODE_ID=0
+    ports:
+      - "50051:50051"
+    volumes:
+      - .:/app
+
+  kvstore-node2:
+    build: .
+    environment:
+      - SERVICE=node
+      - NODE_ID=1
+    ports:
+      - "50052:50052"
+    volumes:
+      - .:/app
+
+  kvstore-node3:
+    build: .
+    environment:
+      - SERVICE=node
+      - NODE_ID=2
+    ports:
+      - "50053:50053"
+    volumes:
+      - .:/app
+
+  flask-app:
+    build: .
+    environment:
+      - SERVICE=flask
+      - FLASK_APP=web/app.py
+    ports:
+      - "5001:5000"
+    volumes:
+      - .:/app
