@@ -50,7 +50,7 @@ Ensure you have the following installed on your system:
 Clone this repository to your local machine:
 
 ```bash
-git clone https://github.com/yourusername/distributed_kv_store.git
+git clone https://github.com/TOZXII/distributed_kv_store_COMP5504.git
 cd distributed_kv_store
 ```
 
