@@ -134,7 +134,7 @@ def serve(node_id, peers):
 
 
 def health_check(peers):
-    time.sleep(10)  # Wait for 10 seconds to allow servers to start
+    time.sleep(10)
     while True:
         for peer in peers:
             try:
