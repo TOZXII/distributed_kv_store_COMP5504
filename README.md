@@ -55,7 +55,7 @@ cd distributed_kv_store
 ```
 
 # Open Docker application in your computer
-
+open docker app
 
 # Running the Project
 Build and Run the Docker Containers
