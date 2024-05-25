@@ -108,7 +108,7 @@ class KeyValueStoreServicer(kvstore_pb2_grpc.KeyValueStoreServicer):
                     except grpc.RpcError as e:
                         retry_count += 1
 
-                        time.sleep(2 ** retry_count)
+                        time.sleep(0.5)
                         if retry_count >= max_retries:
 
                             break
