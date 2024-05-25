@@ -54,27 +54,10 @@ git clone https://github.com/TOZXII/distributed_kv_store_COMP5504.git
 cd distributed_kv_store
 ```
 
-Open Docker application
+# Open Docker application in your computer
 
-Set Up the Python Virtual Environment
-Create and activate a Python virtual environment:
 
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
-
-Install the required packages:
-```bash
-pip install -r requirements.txt
-```
-
-Generate the gRPC code from the proto file:
-```bash
-python -m grpc_tools.protoc -I./proto --python_out=./nodes --grpc_python_out=./nodes ./proto/kvstore.proto
-```
-
-Running the Project
+# Running the Project
 Build and Run the Docker Containers
 Build and run the Docker containers using Docker Compose:
 
